@@ -3,7 +3,7 @@ LOG_FORMAT_SIMPLE = '%(asctime)s %(levelname)s : %(message)s'
 LOG_FORMAT_FULL = "%(log_color)s%(levelname)s%(reset)s | %(log_color)s%(message)s%(reset)s"
 
 NEWS_WEBS = [
-    'https://english.elpais.com/'
+    'https://www.nbcnews.com/us-news'
 ]
 
 TEST_PING_TIMEOUT = 0.5

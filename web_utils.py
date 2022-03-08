@@ -2,12 +2,14 @@ import logging
 import time
 import urllib.request
 import zlib
+import pandas as pd
 from socket import timeout
 
 import requests
 from bs4 import BeautifulSoup as bs, BeautifulSoup
 
 from constants import TEST_PING_URL, PROXY_LIST_LENGTH, TEST_PING_TIMEOUT, DRILL_TIMEOUT
+from logger import init_logger
 
 
 def get_free_proxy_list():
@@ -60,8 +62,9 @@ def request_general(url, request_type='GET', headers=None, is_gzipped=False, nam
     try:
         request_message = urllib.request.Request(url=url, headers=headers, method=request_type)
         with urllib.request.urlopen(request_message, timeout=DRILL_TIMEOUT) as response_message:
+            print(response_message.read())
             if is_gzipped:
-                response_message = zlib.decompress(response_message.read(), 16 + zlib.MAX_WBITS)
+                response_message = zlib.decompress(response_message.read(), zlib.MAX_WBITS | 16)
             if resp_form:
                 return response_message
             soup = BeautifulSoup(response_message, features="html.parser")
@@ -76,5 +79,49 @@ def request_general(url, request_type='GET', headers=None, is_gzipped=False, nam
     return soup
 
 
+def not_startswith(url, exception_list):
+    for excep in exception_list:
+        if url.startswith(excep):
+            return False
+    return True
+
+
+def request_dashboard(url, template, exceptions):
+    r = requests.get(url)
+    b = BeautifulSoup(r.content, "html.parser")
+    links = [link.get('href') for link in b.findAll('a')]
+    links = set(links)
+    prep_links = [link for link in links if link.startswith(template) and not_startswith(link, exceptions)]
+    return prep_links
+
+
+def request_content(url, type_class):
+    r = requests.get(url)
+    b = BeautifulSoup(r.content, "html.parser")
+    body = b.find("div", {"class": type_class})
+    return body.text if body is not None else None
+
+
+def retrieving_nbc_news(category):
+    nbc_url = 'https://www.nbcnews.com/' + category
+    template_url = f'https://www.nbcnews.com/news/'
+    exceptions_list = [template_url+'nbc-news-digital-editors']
+    news_web_list = request_dashboard(nbc_url, template_url, exceptions_list)
+    logging.info(f'Get {len(news_web_list)} news from {nbc_url}.')
+    result = []
+
+    for i in news_web_list:
+        content = request_content(i, "article-body__content")
+        if content is not None:
+            result.append([i, category, content])
+        time.sleep(0.33)
+
+    return result
+
+
 if __name__ == '__main__':
-    print(get_proxy())
+    init_logger()
+    result = retrieving_nbc_news('world')
+    df = pd.DataFrame(result, columns=['url', 'category', 'content'])
+    for i in df['content']:
+        print(i)
