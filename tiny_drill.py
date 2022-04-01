@@ -35,8 +35,9 @@ class TinyDrill:
         tech = retrieving_nbc_news('tech')
         asian_america = retrieving_nbc_news('asian-america')
         result = pd.DataFrame(world + tech + asian_america, columns=['url', 'category', 'content'])
-        self.nuggets.append([datetime.now(), result])
-        result.to_csv('result.csv')
+        self.nuggets.append([str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S")), result])
+        result.to_csv('res.csv')
+        result.to_csv(str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))+'.csv')
         print(result.shape)
 
     def kai_bai(self):
